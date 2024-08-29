@@ -1,3 +1,3 @@
 #!/bin/bash
 
-docker run --name stress -d --env SIZE=128MB yoavklein3/stress:0.1
+docker run --rm --name stress -d --env SIZE=400 yoavklein3/stress:0.1
