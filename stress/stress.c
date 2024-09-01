@@ -10,6 +10,7 @@ int main() {
         return 1;
     }
 
+
     // Convert the SIZE variable to an integer (MB)
     int size_mb = atoi(size_str);
     if (size_mb <= 0) {
@@ -26,9 +27,24 @@ int main() {
         printf("Memory allocation failed!\n");
         return 1;
     }
+    
+    size_t size_to_occupy = size;
+    
+    char *percent_str = getenv("PERCENT");
+    if(percent_str != NULL) {
+        int percent = atoi(percent_str);
+        if(percent < 0) {
+            printf("Invalid PERCENT value, %s\n", percent_str);
+        } else {
+            size_to_occupy = size * percent / 100;
+            printf("%lu bytes will be occupied\n", size_to_occupy);
+        }
+     
+    }
+
 
     // Touch the memory to ensure it's actually allocated
-    for (size_t i = 0; i < size; i++) {
+    for (size_t i = 0; i < size_to_occupy; i++) {
         buffer[i] = 0;
     }
 
