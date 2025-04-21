@@ -3,7 +3,7 @@ FROM openjdk:11-jdk
 
 WORKDIR /app
 
-COPY MemoryConsumer.java .
+COPY app/* .
 
 RUN javac MemoryConsumer.java
 
