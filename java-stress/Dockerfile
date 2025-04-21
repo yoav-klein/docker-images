@@ -5,6 +5,6 @@ WORKDIR /app
 
 COPY app/* .
 
-RUN javac MemoryConsumer.java
+RUN javac Main.java
 
-CMD ["java", "MemoryConsumer"]
+CMD ["java", "Main"]
