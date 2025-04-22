@@ -8,52 +8,74 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 public class Controller extends Thread {
-    private MemoryConsumer consumer;
+    private MemorySizeHolder sizeHolder;
     private HttpServer server;
     
-    public Controller(MemoryConsumer consumer) throws IOException {
-        this.consumer = consumer;
+    public Controller(MemorySizeHolder holder) throws IOException {
+        this.sizeHolder = holder;
         this.server = HttpServer.create(new InetSocketAddress(8090), 0);
     }
 
     @Override
     public void run() {
-        server.createContext("/update", new Handler(consumer));
-        System.out.println("STarting server");
+        server.createContext("/update", new UpdateHandler(this.sizeHolder));
+        server.createContext("/stop", new StopHandler(this.sizeHolder, server));
+
         server.start();
     }
 
-    private static class Handler implements HttpHandler {
-        MemoryConsumer consumer;
+    private static class UpdateHandler implements HttpHandler {
+        MemorySizeHolder sizeHolder;
 
-        public Handler(MemoryConsumer consumer) {
-            this.consumer = consumer;
+        public UpdateHandler(MemorySizeHolder sizeHolder) {
+            this.sizeHolder = sizeHolder;
         }
 
         @Override
         public void handle(HttpExchange exchange) throws IOException {
             try {
-                String method = exchange.getRequestMethod();
                 URI uri = exchange.getRequestURI();
-                System.out.println("Query: " + uri.getQuery());
                 String[] requestParams = uri.getQuery().split("&");
 
                 int newVal;
-            
-                String response = "Hello from server";
+                String response = "No size parameter received";
                 for(String param : requestParams) {
                     String[] parts = param.split("=");
                     if(parts[0].equals("size")) {
                         newVal = Integer.parseInt(parts[1]);
-                        consumer.update(newVal);
+                        sizeHolder.update(newVal);
                         response = "Value updated!";
                     }
                 }
-
                 exchange.sendResponseHeaders(200, response.length());
                 OutputStream os = exchange.getResponseBody();
                 os.write(response.getBytes());
                 os.close();
+            } finally {}
+
+        }
+
+    }
+
+    private static class StopHandler implements HttpHandler {
+        MemorySizeHolder sizeHolder;
+        HttpServer server;
+
+        public StopHandler(MemorySizeHolder sizeHolder, HttpServer server) {
+            this.server = server;
+            this.sizeHolder = sizeHolder;
+        }
+
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            try {
+                String response = "Stopping...";
+                sizeHolder.update(0);
+                exchange.sendResponseHeaders(200, response.length());
+                OutputStream os = exchange.getResponseBody();
+                os.write(response.getBytes());
+                os.close();
+                this.server.stop(0);
             } finally {}
 
         }

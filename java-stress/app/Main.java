@@ -6,7 +6,6 @@ import java.io.IOException;
 public class Main {
     public static void main(String[] args) throws IOException {
 
-
         String sizeStr = System.getenv("SIZE");
         if(null == sizeStr) {
             System.out.println("Define the SIZE environment variable");
@@ -20,17 +19,19 @@ public class Main {
             System.exit(1);
         }
 
-        MemoryConsumer consumer = new MemoryConsumer(memoryInMB);
+        MemorySizeHolder sizeHolder = new MemorySizeHolder(memoryInMB);
+        MemoryConsumer consumer = new MemoryConsumer(sizeHolder);
         consumer.start();
 
-        Controller controller = new Controller(consumer);
+        Controller controller = new Controller(sizeHolder);
         controller.start();
 
-        while(true) {
-            try {
-                Thread.sleep(3000);
-            } catch(InterruptedException e) {}
-        }
+        try {
+            controller.join();
+            consumer.join();
+        } catch(InterruptedException e) {}
+
+        System.out.println("Program ends...");
 
     }
 }

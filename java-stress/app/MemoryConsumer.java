@@ -1,48 +1,25 @@
 
 public class MemoryConsumer extends Thread {
 
-    private boolean changed = false;
-    private int memoryInMB;
+    private MemorySizeHolder sizeHolder;
 
-    public MemoryConsumer(int memoryInMB) {
-        this.memoryInMB = memoryInMB;
-    }
-
-    public void update(int newVal) {
-        this.memoryInMB = newVal;
-        this.changed = true;
+    public MemoryConsumer(MemorySizeHolder sizeHolder) {
+        this.sizeHolder = sizeHolder;
     }
     
     @Override
     public void run() {
         while(true) {
-            changed = false;
-            consume();
+            int memoryInMB = sizeHolder.getSize();
+            if(memoryInMB == 0) break;
+            consume(memoryInMB);
         }
     }
 
-    public void consume() {
-
-        try {
-            System.out.println("Consuming " + this.memoryInMB + " MB of heap memory...");
-            byte[] mem = consumeMemory(memoryInMB);
-
-            try {
-                while(!this.changed) {
-                    Thread.sleep(3000);
-                }
-            } catch(Exception e) {
-                System.out.println("Done sleeping");
-            }
-
-        } catch (NumberFormatException e) {
-            System.out.println("Invalid memory value. Please enter a valid integer.");
-            System.exit(1);
-        } catch (Exception e) {
-            e.printStackTrace();
-            System.exit(1);
-        }
-
+    public void consume(int memoryInMB) {
+        System.out.println("Consuming " + memoryInMB + " MB of heap memory...");
+        byte[] mem = consumeMemory(memoryInMB);
+        sizeHolder.waitForNewValue();
     }
 
     private byte[] consumeMemory(int memoryInMB) {
