@@ -130,6 +130,17 @@ void send_response(int sockfd, struct http_response response) {
  *
  * prepare the HTTP response
  */
+
+struct http_header *create_header(const char *key, const char *value) {
+    struct http_header *header = malloc(sizeof(*header));
+    header->key = malloc(strlen(key));
+    strcpy(header->key, key);
+    header->value = malloc(strlen(value));
+    strcpy(header->value, value);
+
+    return header;
+}
+
 void answer(int sockfd) {
     struct http_response response;
 
@@ -138,18 +149,8 @@ void answer(int sockfd) {
     response.status_code = OK;
 
     struct http_header **headers = malloc(sizeof(*headers) * 3);
-    headers[0] = malloc(sizeof(struct http_header));
-    headers[0]->key = malloc(strlen("Content-Length"));
-    strcpy(headers[0]->key, "Content-Length");
-    headers[0]->value = malloc(2);
-    strcpy(headers[0]->value, "10");
-    
-    headers[1] = malloc(sizeof(struct http_header));
-    headers[1]->key = malloc(strlen("Content-Type"));
-    strcpy(headers[1]->key, "Content-Type");
-    headers[1]->value = malloc(strlen("text/plain"));
-    strcpy(headers[1]->value, "text/plain");
-    
+    headers[0] = create_header("Content-Length", "10");
+    headers[1] = create_header("Content-Type", "text/plain");
     headers[2] = NULL;
 
     response.headers.header_list = headers;
