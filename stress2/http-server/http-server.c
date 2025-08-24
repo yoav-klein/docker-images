@@ -55,21 +55,111 @@ void bind_socket(int sockfd, int is_specified_addr, char* addr, int port)  {
 }
 
 
-char *read_head(int sock) {
-    char *head = read_until(sock, "\r\n\r\n", 0);
-    return head;
+/**
+ *  free_http_request
+ *
+ *  frees the allocated memory for the request
+ *
+ */
+
+void free_http_request(struct http_request request) {
+    struct http_header *current = NULL;
+    free(request.path);
+    free(request.protocol);
+
+    struct http_header **runner = request.headers.header_list;
+    while(*runner) {
+        current = *runner;
+        free(current->key);
+        free(current->value);
+        free(current);
+        ++runner;
+    }
+    free(request.headers.header_list);
 }
 
+/**
+ * send_response
+ *
+ * */
+
+void send_response(int sockfd, struct http_request request) {
+    char *response = "HTTP/1.1 200 OK\r\n\r\n";
+
+    write(sockfd, response, strlen(response));
+}
+
+/**
+ * display_request
+ * 
+ * for debugging
+ */
+void display_request(struct http_request request) {
+    /* request line */
+    if(request.method == GET) { printf("GET\n"); }
+    else if(request.method == POST) { printf("POST\n"); }
+    else if(request.method == PUT) { printf("PUT\n"); }
+    printf("Path: %s\n", request.path);
+    printf("Protocol: %s\n", request.protocol);
+
+    /* headers*/
+    printf("Headers:\n");
+    struct http_header** header_list = request.headers.header_list;
+    while(*header_list) {
+        printf("%s: %s\n", (*header_list)->key, (*header_list)->value);
+        header_list++;
+    }
+
+    /* body */
+    printf("Body:\n");
+    printf("%s\n", request.body);
+}
+
+/*
+ * get_header_value
+ *
+ * headers - http_headers struct containing all the headers
+ * key - key to be looked for
+ *
+ * returns: the value if exists, NULL otherwise
+ * */
+char *get_header_value(struct http_headers headers, const char *key) {
+    struct http_header **runner = headers.header_list;
+    
+    while(*runner) {
+        if(strcmp((*runner)->key, key) == 0) {
+            return (*runner)->value;
+        }
+        ++runner;
+    }
+
+    return NULL;
+}
+
+/**
+ *
+ * parse_head
+ *
+ * head - string with all the head of the request (request_line + headers)
+ *
+ * returns: http_request
+ * caller needs to call free_http_request
+ *
+ */
 struct http_request parse_head(const char *head) {
     struct http_request ret = { 0 };
-    char **head_lines = split(head, "\r\n");
-    char *request_line = head_lines[0];
+    char **head_lines;
+    char *request_line;
     struct http_header *headers[100];
     struct http_header *current_header;
     char **current_parts;
-    char **header_lines = head_lines + 1;
+    char **header_lines;
     int index = 0, i = 0;
 
+    head_lines = split(head, "\r\n");
+    header_lines = head_lines + 1;
+    request_line= head_lines[0];
+    
     /* parse request line */
     char** request_line_parts = split(request_line, " ");
     if(strcmp("GET", request_line_parts[0]) == 0) {
@@ -111,79 +201,55 @@ struct http_request parse_head(const char *head) {
     return ret;
 }
 
-char *get_header_value(struct http_headers headers, const char *key) {
-    struct http_header **runner = headers.header_list;
-    
-    while(*runner) {
-        if(strcmp((*runner)->key, key) == 0) {
-            return (*runner)->value;
-        }
-        ++runner;
-    }
-
-    return NULL;
+/* read the request line and headers */
+char *read_head(int sock) {
+    char *head = read_until(sock, "\r\n\r\n", 0);
+    return head;
 }
 
-void free_http_request(struct http_request request) {
-    struct http_header *current = NULL;
-    free(request.path);
-    free(request.protocol);
 
-    struct http_header **runner = request.headers.header_list;
-    while(*runner) {
-        current = *runner;
-        free(current->key);
-        free(current->value);
-        free(current);
-        ++runner;
+/* after accepting connection, server HTTP request */
+void serve_http_request(int sockfd) {
+    char *head = read_head(sockfd);
+    struct http_request request = { 0 };
+    int body_len = 0;
+    request = parse_head(head);
+
+    char *content_length = get_header_value(request.headers, "Content-Length");
+    if(content_length) {
+        body_len = atoi(content_length);
+        request.body = malloc(body_len + 1);
+        read_all(sockfd, request.body, body_len);
+        request.body[body_len] = '\0';
     }
-    free(request.headers.header_list);
-}
 
-void display_request(struct http_request request) {
-    if(request.method == GET) { printf("GET\n"); }
-    else if(request.method == POST) { printf("POST\n"); }
-    else if(request.method == PUT) { printf("PUT\n"); }
+    display_request(request);
 
-    printf("Path: %s\n", request.path);
-    printf("Protocol: %s\n", request.protocol);
-    printf("Headers:\n");
-    struct http_header** header_list = request.headers.header_list;
-    while(*header_list) {
-        printf("%s: %s\n", (*header_list)->key, (*header_list)->value);
-        header_list++;
-    }
+    send_response(sockfd, request);
+
+    free_http_request(request);
+    free(head);
+
+
 }
 
 void serve(int sockfd) {
     struct sockaddr_in cliaddr;
 	socklen_t client_addr_size;	
 	int cfd;
-    char buffer[BUFF_SIZE] = { 0 };
-    int i = 0;
-    struct http_request request = { 0 };
-
+    
 	memset(&cliaddr, 0, sizeof(cliaddr));
 	
 	client_addr_size = sizeof(cliaddr);
-
     
 	cfd = accept(sockfd, (struct sockaddr*)&cliaddr, &client_addr_size);
-	if(-1 == cfd)
-	{
+	if(-1 == cfd) {
 		perror("accept");
 		exit(1);
 	}
 
-    char *head = read_head(cfd);
-    request = parse_head(head);
+    serve_http_request(cfd);
 
-    display_request(request);
-
-    free_http_request(request);
-    free(head);
-
-    fflush(stdout);
     close(cfd);
 }
 
@@ -208,9 +274,9 @@ int main(int argc, char** argv) {
 		perror("listen");
 		exit(1);
 	} 
-    //while(1) {
+    while(1) {
         serve(sockfd);
-    //}
+    }
 
     return 0;
 }

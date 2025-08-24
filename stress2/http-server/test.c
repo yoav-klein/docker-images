@@ -5,7 +5,6 @@
 #include "utils.h"
 
 
-
 void split_test() {
     char header[80] = "Length: 23\r\nType: bag\r\n\r\nBBodyyyyy";
     
@@ -23,7 +22,7 @@ void split_test() {
 }
 
 int main() {
-    split_test();
+    cnst_test();
     return 0;
 }
 
