@@ -6,7 +6,7 @@
 
 
 
-int main() {
+void split_test() {
     char header[80] = "Length: 23\r\nType: bag\r\n\r\nBBodyyyyy";
     
     char** arr = split(header, "\r\n\r\n");
@@ -19,6 +19,11 @@ int main() {
 
     free_string_array(arr);
 
+
+}
+
+int main() {
+    split_test();
     return 0;
 }
 

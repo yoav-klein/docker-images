@@ -54,25 +54,6 @@ void bind_socket(int sockfd, int is_specified_addr, char* addr, int port)  {
 
 }
 
-void read_from_client(int cfd, char* buffer, size_t size) {
-	size_t bytes_read = 0;
-
-    while(bytes_read < size) {
-        bytes_read = read(cfd, buffer, size);
-    }
-
-	bytes_read = read(cfd, buffer, BUFF_SIZE);
-	if(-1 == bytes_read)
-	{
-		perror("read");
-	}
-	buffer[bytes_read] = 0;
-
-    printf("===== RAW\n");
-    printf("%s", buffer);
-    printf("==== RAW\n");
-}
-
 
 char *read_head(int sock) {
     char *head = read_until(sock, "\r\n\r\n", 0);
@@ -121,7 +102,7 @@ struct http_request parse_head(const char *head) {
     
     free_string_array(head_lines);
     
-    ret.headers.header_list = malloc(sizeof(struct http_header*) * index + 1 );
+    ret.headers.header_list = malloc(sizeof(struct http_header*) * (index + 1));
     for(i = 0; i < index; ++i) {
         ret.headers.header_list[i] = headers[i];
     }
@@ -134,10 +115,10 @@ char *get_header_value(struct http_headers headers, const char *key) {
     struct http_header **runner = headers.header_list;
     
     while(*runner) {
-        struct http_header *current = *runner;
-        if(strcmp(current->key, key) == 0) {
-            return current->value;
+        if(strcmp((*runner)->key, key) == 0) {
+            return (*runner)->value;
         }
+        ++runner;
     }
 
     return NULL;
@@ -157,6 +138,21 @@ void free_http_request(struct http_request request) {
         ++runner;
     }
     free(request.headers.header_list);
+}
+
+void display_request(struct http_request request) {
+    if(request.method == GET) { printf("GET\n"); }
+    else if(request.method == POST) { printf("POST\n"); }
+    else if(request.method == PUT) { printf("PUT\n"); }
+
+    printf("Path: %s\n", request.path);
+    printf("Protocol: %s\n", request.protocol);
+    printf("Headers:\n");
+    struct http_header** header_list = request.headers.header_list;
+    while(*header_list) {
+        printf("%s: %s\n", (*header_list)->key, (*header_list)->value);
+        header_list++;
+    }
 }
 
 void serve(int sockfd) {
@@ -182,7 +178,7 @@ void serve(int sockfd) {
     char *head = read_head(cfd);
     request = parse_head(head);
 
-    printf("Value of Host: %s", get_header_value(request.headers, "Host"));
+    display_request(request);
 
     free_http_request(request);
     free(head);

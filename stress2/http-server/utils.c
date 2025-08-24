@@ -113,7 +113,7 @@ char** split(const char* str, const char* delim) {
             token_length = str - last;
             if(token_length > 0) {
                 token = (char*)malloc(token_length + 1);
-                strncpy(token, last, token_length);
+                memcpy(token, last, token_length);
                 token[token_length] = '\0';
                 tokens[index++] = token;
             }
@@ -127,12 +127,12 @@ char** split(const char* str, const char* delim) {
     if(str > last) {
         token_length = str - last;
         token = (char*)malloc(token_length + 1);
-        strncpy(token, last, token_length);
+        memcpy(token, last, token_length);
         token[token_length] = '\0';
         tokens[index++] = token;
     }
 
-    ret = (char**) malloc(sizeof(char*) * index + 1);
+    ret = (char**) malloc(sizeof(char*) * (index + 1));
     for(i = 0; i < index; ++i) {
         ret[i] = tokens[i];
     }
