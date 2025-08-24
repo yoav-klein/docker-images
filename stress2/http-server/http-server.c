@@ -50,24 +50,17 @@ void bind_socket(int sockfd, int is_specified_addr, char* addr, int port)  {
 		perror("bind");
 		exit(1);
 	}
-	printf("Bound to %s\n", inet_ntoa(servaddr.sin_addr));
 
 }
 
-
 /**
- *  free_http_request
- *
- *  frees the allocated memory for the request
+ *  
+ *  free_http_headers
  *
  */
-
-void free_http_request(struct http_request request) {
+void free_http_headers(struct http_headers headers) {
     struct http_header *current = NULL;
-    free(request.path);
-    free(request.protocol);
-
-    struct http_header **runner = request.headers.header_list;
+    struct http_header **runner = headers.header_list;
     while(*runner) {
         current = *runner;
         free(current->key);
@@ -75,25 +68,100 @@ void free_http_request(struct http_request request) {
         free(current);
         ++runner;
     }
-    free(request.headers.header_list);
+    free(headers.header_list);
 }
 
 /**
+ *
+ *  free_http_response
+ *
+ *  frees the allocated memory for the response
+ *
+ **/
+void free_http_response(struct http_response response) {
+    free(response.protocol);
+    free_http_headers(response.headers);
+}
+
+/**
+ *
+ *  free_http_request
+ *
+ *  frees the allocated memory for the request
+ *
+ */
+
+void free_http_request(struct http_request request) {
+    free(request.path);
+    free(request.protocol);
+    free_http_headers(request.headers);
+    if(request.body) free(request.body);
+}
+
+/**
+ *
  * send_response
  *
  * */
 
 void send_response(int sockfd, struct http_response response) {
-    char buffer[1024] = { 0 };
-    sprintf(buffer, "%s %u %s\r\n", 
+    #define RESP_BUFF_SIZE (1024)
+    char buffer[RESP_BUFF_SIZE] = { 0 };
+    sprintf(buffer, "%s %u %s\r\n",
         response.protocol, response.status_code, status_code_to_string(response.status_code));
-
-    printf("%s\n", buffer);
-
+    
+    struct http_header **runner = response.headers.header_list;
+    while(*runner) {
+        char *key = (*runner)->key;
+        char *value = (*runner)->value;
+        sprintf(buffer, "%s%s: %s\r\n", buffer, key, value);
+        ++runner;
+    }
+    sprintf(buffer, "%s\r\n", buffer);
+    sprintf(buffer, "%s%s", buffer, response.body);
+    
     write(sockfd, buffer, strlen(buffer));
 }
 
+
 /**
+ *
+ * answer
+ *
+ * prepare the HTTP response
+ */
+void answer(int sockfd) {
+    struct http_response response;
+
+    response.protocol = malloc(sizeof(char*));
+    strcpy(response.protocol, "HTTP/1.1");
+    response.status_code = OK;
+
+    struct http_header **headers = malloc(sizeof(*headers) * 3);
+    headers[0] = malloc(sizeof(struct http_header));
+    headers[0]->key = malloc(strlen("Content-Length"));
+    strcpy(headers[0]->key, "Content-Length");
+    headers[0]->value = malloc(2);
+    strcpy(headers[0]->value, "10");
+    
+    headers[1] = malloc(sizeof(struct http_header));
+    headers[1]->key = malloc(strlen("Content-Type"));
+    strcpy(headers[1]->key, "Content-Type");
+    headers[1]->value = malloc(strlen("text/plain"));
+    strcpy(headers[1]->value, "text/plain");
+    
+    headers[2] = NULL;
+
+    response.headers.header_list = headers;
+    response.body = "Hello world!";
+
+    send_response(sockfd, response);
+
+    free_http_response(response);
+}
+
+/**
+ *
  * display_request
  * 
  * for debugging
@@ -115,11 +183,14 @@ void display_request(struct http_request request) {
     }
 
     /* body */
-    printf("Body:\n");
-    printf("%s\n", request.body);
+    if(request.body) {
+        printf("Body:\n");
+        printf("%s\n", request.body);
+    }
 }
 
-/*
+/**
+ *
  * get_header_value
  *
  * headers - http_headers struct containing all the headers
@@ -216,7 +287,6 @@ char *read_head(int sock) {
 void serve_http_request(int sockfd) {
     char *head = read_head(sockfd);
     struct http_request request = { 0 };
-    struct http_response response;
     int body_len = 0;
     request = parse_head(head);
 
@@ -230,10 +300,7 @@ void serve_http_request(int sockfd) {
 
     display_request(request);
     
-    response.protocol = "HTTP/1.1";
-    response.status_code = OK;
-    send_response(sockfd, response);
-
+    answer(sockfd);
     free_http_request(request);
     free(head);
 }
@@ -260,8 +327,6 @@ void serve(int sockfd) {
 
 
 int main(int argc, char** argv) {
-    printf("Hello\n");
-    
     int sockfd = create_socket();
     
     if(argc > 2) {
@@ -279,9 +344,9 @@ int main(int argc, char** argv) {
 		perror("listen");
 		exit(1);
 	} 
-    while(1) {
+    //while(1) {
         serve(sockfd);
-    }
+    //}
 
     return 0;
 }
