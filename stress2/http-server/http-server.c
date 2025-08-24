@@ -83,10 +83,14 @@ void free_http_request(struct http_request request) {
  *
  * */
 
-void send_response(int sockfd, struct http_request request) {
-    char *response = "HTTP/1.1 200 OK\r\n\r\n";
+void send_response(int sockfd, struct http_response response) {
+    char buffer[1024] = { 0 };
+    sprintf(buffer, "%s %u %s\r\n", 
+        response.protocol, response.status_code, status_code_to_string(response.status_code));
 
-    write(sockfd, response, strlen(response));
+    printf("%s\n", buffer);
+
+    write(sockfd, buffer, strlen(buffer));
 }
 
 /**
@@ -212,6 +216,7 @@ char *read_head(int sock) {
 void serve_http_request(int sockfd) {
     char *head = read_head(sockfd);
     struct http_request request = { 0 };
+    struct http_response response;
     int body_len = 0;
     request = parse_head(head);
 
@@ -224,13 +229,13 @@ void serve_http_request(int sockfd) {
     }
 
     display_request(request);
-
-    send_response(sockfd, request);
+    
+    response.protocol = "HTTP/1.1";
+    response.status_code = OK;
+    send_response(sockfd, response);
 
     free_http_request(request);
     free(head);
-
-
 }
 
 void serve(int sockfd) {

@@ -5,6 +5,12 @@
 #include "utils.h"
 
 
+void test() {
+    char *buffer = malloc(1000);
+    buffer[100] = '\0';
+    free(buffer);
+}
+
 void split_test() {
     char header[80] = "Length: 23\r\nType: bag\r\n\r\nBBodyyyyy";
     
@@ -22,7 +28,7 @@ void split_test() {
 }
 
 int main() {
-    cnst_test();
+    test();
     return 0;
 }
 

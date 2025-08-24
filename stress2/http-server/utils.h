@@ -1,5 +1,4 @@
 
-
 void free_string_array(char** arr);
 void free_string_array_leave_strings(char** arr);
 char** split(const char* str, const char* delim);
