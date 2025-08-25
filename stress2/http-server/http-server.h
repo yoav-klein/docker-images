@@ -25,12 +25,21 @@ char *status_code_to_string(enum StatusCode code) {
 }
 
 struct http_header {
-    char* key;
-    char* value;
+    char *key;
+    char *value;
+};
+
+struct query_param {
+    char *key;
+    char *value;
 };
 
 struct http_headers {
     struct http_header **header_list;
+};
+
+struct query_params {
+    struct query_param **param_list;
 };
 
 
@@ -38,6 +47,7 @@ struct http_request {
     enum Method method;
     char *path;
     char *protocol;
+    struct query_params query_params;
     struct http_headers headers;
     char *body;
 };

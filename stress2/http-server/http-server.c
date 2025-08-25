@@ -173,11 +173,18 @@ void display_request(struct http_request request) {
     else if(request.method == POST) { printf("POST\n"); }
     else if(request.method == PUT) { printf("PUT\n"); }
     printf("Path: %s\n", request.path);
+    printf("Query params:\n");
+    
+    struct query_param **param_list = request.query_params.param_list;
+    while(*param_list) {
+        printf("%s: %s\n", (*param_list)->key, (*param_list)->value);
+        param_list++;
+    }
     printf("Protocol: %s\n", request.protocol);
 
     /* headers*/
     printf("Headers:\n");
-    struct http_header** header_list = request.headers.header_list;
+    struct http_header **header_list = request.headers.header_list;
     while(*header_list) {
         printf("%s: %s\n", (*header_list)->key, (*header_list)->value);
         header_list++;
@@ -211,6 +218,82 @@ char *get_header_value(struct http_headers headers, const char *key) {
 
     return NULL;
 }
+
+/**
+ *
+ * parse_uri
+ *
+ */
+
+void parse_uri(struct http_request *request, char *uri) {
+    char **param_str_list;
+    char **params_runner;
+    int num_params = 0, index = 0;
+    char *uri_runner = uri;
+    int length = 0;
+    
+    /* parse path*/
+    while(*uri_runner && *uri_runner != '?') ++uri_runner;
+    length = uri_runner - uri;
+    request->path = malloc(length + 1);
+    memcpy(request->path, uri, length);
+    request->path[length] = '\0';
+
+    /* if no query params, return */
+    if(!*uri_runner) {
+        printf("NO PARAMS\n"); fflush(stdout);
+        return;
+    }
+
+
+    uri = ++uri_runner;
+    param_str_list = split(uri, "&");
+    params_runner = param_str_list;
+
+
+    while(*params_runner) {
+        ++num_params;
+        ++params_runner;
+    }
+
+    params_runner = param_str_list;
+
+    request->query_params.param_list = malloc(sizeof(struct query_param*) * (num_params + 1)); 
+    
+    /* handle each query param string */
+    while(*params_runner) {
+        char *curr = *params_runner;
+        char **parts = split(curr, "=");
+
+        request->query_params.param_list[index] = malloc(sizeof(struct query_param));
+        request->query_params.param_list[index]->key = parts[0];
+        request->query_params.param_list[index]->value = parts[1];
+        ++params_runner;
+        ++index;
+
+        free_string_array_leave_strings(parts);
+    }
+    request->query_params.param_list[index] = NULL;
+
+    free_string_array(param_str_list);
+}
+
+
+void free_http_request_params(struct query_params params) {
+    struct query_param **param_list_runner = params.param_list;
+
+    while(*param_list_runner) {
+        struct query_param *current = *param_list_runner;
+        free(current->key);
+        free(current->value);
+        free(current);
+        ++param_list_runner;
+    }
+
+    free(params.param_list);
+}
+
+
 
 /**
  *
@@ -250,7 +333,13 @@ struct http_request parse_head(const char *head) {
         printf("UNKNOWN METHOD");
     }
     free(request_line_parts[0]);
-    ret.path = request_line_parts[1];
+    
+    /* parse uri - path, request params */
+    char *uri = request_line_parts[1];
+    parse_uri(&ret, uri);
+    free(request_line_parts[1]);
+    
+    /* protocol */
     ret.protocol = request_line_parts[2];
     free_string_array_leave_strings(request_line_parts);
     
