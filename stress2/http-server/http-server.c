@@ -203,11 +203,14 @@ void display_request(struct http_request request) {
     printf("Query params:\n");
     
     struct query_param **param_list = request.query_params.param_list;
-    while(*param_list) {
-        printf("%s: %s\n", (*param_list)->key, (*param_list)->value);
-        param_list++;
+
+    if(NULL != param_list) {
+         while(*param_list) {
+            printf("%s: %s\n", (*param_list)->key, (*param_list)->value);
+            param_list++;
+        }
     }
-    printf("Protocol: %s\n", request.protocol);
+       printf("Protocol: %s\n", request.protocol);
 
     /* headers*/
     printf("Headers:\n");
