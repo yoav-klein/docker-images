@@ -59,10 +59,12 @@ void bind_socket(int sockfd, int is_specified_addr, char* addr, int port)  {
  *
  */
 void free_http_headers(struct http_headers headers) {
-    struct http_header *current = NULL;
     struct http_header **runner = headers.header_list;
+
+    if(NULL == runner) return;
+
     while(*runner) {
-        current = *runner;
+        struct http_header *current = *runner;
         free(current->key);
         free(current->value);
         free(current);
@@ -70,6 +72,29 @@ void free_http_headers(struct http_headers headers) {
     }
     free(headers.header_list);
 }
+
+/**
+ *
+ * free_http_request_params
+ *
+ */
+
+void free_http_request_params(struct query_params params) {
+    struct query_param **param_list_runner = params.param_list;
+
+    if(NULL == param_list_runner) return;
+
+    while(*param_list_runner) {
+        struct query_param *current = *param_list_runner;
+        free(current->key);
+        free(current->value);
+        free(current);
+        ++param_list_runner;
+    }
+
+    free(params.param_list);
+}
+
 
 /**
  *
@@ -95,8 +120,10 @@ void free_http_request(struct http_request request) {
     free(request.path);
     free(request.protocol);
     free_http_headers(request.headers);
+    free_http_request_params(request.query_params);
     if(request.body) free(request.body);
 }
+
 
 /**
  *
@@ -276,21 +303,6 @@ void parse_uri(struct http_request *request, char *uri) {
     request->query_params.param_list[index] = NULL;
 
     free_string_array(param_str_list);
-}
-
-
-void free_http_request_params(struct query_params params) {
-    struct query_param **param_list_runner = params.param_list;
-
-    while(*param_list_runner) {
-        struct query_param *current = *param_list_runner;
-        free(current->key);
-        free(current->value);
-        free(current);
-        ++param_list_runner;
-    }
-
-    free(params.param_list);
 }
 
 
