@@ -20,6 +20,7 @@ struct thread_data {
 struct allocation {
     void *location;
     int id;
+    int amount;
 };
 
 /* globals */
@@ -65,22 +66,38 @@ void *http_server(void *args) {
 }
 
 void handle_allocate(struct http_request *request, struct http_response *response) {
-    response->status_code = OK;
+    char *amount_str = get_query_param(request->query_params, "amount");
+    
+    if(NULL == amount_str) {
+        printf("NULL AMOUNT\n"); fflush(stdout);
+        response->status_code = BAD_REQUEST;
+        response->body = "Amount not specified";
+        return;
+    }
 
+    int amount = atoi(amount_str);
 
     struct allocation *allocation = malloc(sizeof(*allocation));
-    allocation->location = malloc(10);
+    if(NULL == allocation) {
+        response->status_code = SERVER_ERROR;
+        response->body = "server error";
+        return;
+    }
+    allocation->location = malloc(amount);
+    if(NULL == allocation->location) {
+        free(allocation);
+
+        response->status_code = SERVER_ERROR;
+        response->body = "server error";
+        return;
+    }
     allocation->id = gid++;
+    allocation->amount = amount;
     
     sll_insert(&allocation_list, (void*)allocation);
-
-    response->body = "{\"status\": \"OK\"}";
     
-    struct sll_node *curr = allocation_list;
-    while(curr) {
-        printf("ITEM\n");
-        curr = curr->next;
-    }
+    response->status_code = OK;
+    response->body = "{\"status\": \"OK\"}"; 
 }
 
 void handle_release(struct http_request *request, struct http_response *response) {
@@ -89,13 +106,28 @@ void handle_release(struct http_request *request, struct http_response *response
 }
 
 void handle_status(struct http_request *request, struct http_response *response) {
+    char *payload;
+    char buffer[1024] = { 0 };
+    struct sll_node *curr = allocation_list;
+
+    while(curr) {
+        struct allocation *allocation = (struct allocation*)curr->data;
+        if(NULL == allocation) { curr = curr-> next; continue; }
+        sprintf(buffer + strlen(buffer), "id: %d, amount: %d, location: %p\n", allocation->id, allocation->amount, allocation->location);
+        curr = curr->next;
+    }
+
+    int length = strlen(buffer);
+    payload = malloc(length + 1);
+    strcpy(payload, buffer);
+
     response->status_code = OK;
-    response->body = "{\"status\": \"OK\"}";
+    response->body = payload;
 }
 
 void handle_request() {
     struct http_request request = *g_request;
-    struct http_response response;
+    struct http_response response = { 0 };
     char content_length_string[20] = { 0 };
     
     /* protocol is always the same */
@@ -122,6 +154,12 @@ void handle_request() {
     headers[2] = NULL;
 
     response.headers.header_list = headers;
+
+    struct http_header **runner = headers;
+    while(*runner) {
+        printf("%s: %s\n", (*runner)->key, (*runner)->value);
+        runner++;
+    }
 
     send_response(request.clientfd, response);
 
