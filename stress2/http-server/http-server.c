@@ -33,12 +33,12 @@ int create_socket() {
 	return sockfd;
 }
 
-void bind_socket(int sockfd, int is_specified_addr, char* addr, int port)  {
+void bind_socket(int sockfd, char* addr, int port)  {
 	struct sockaddr_in servaddr;
 	
 	memset(&servaddr, 0, sizeof(servaddr));
 	servaddr.sin_family = AF_INET;
-	if(is_specified_addr) {
+	if(addr) {
 		servaddr.sin_addr.s_addr = inet_addr(addr);
 	}
 	else {
@@ -131,61 +131,51 @@ void free_http_request(struct http_request request) {
  *
  * */
 
-void send_response(int sockfd, struct http_response response) {
+void send_response(int cfd, struct http_response response) {
     #define RESP_BUFF_SIZE (1024)
     char buffer[RESP_BUFF_SIZE] = { 0 };
+    char *curr = buffer;
+
+    /* status line */
     sprintf(buffer, "%s %u %s\r\n",
         response.protocol, response.status_code, status_code_to_string(response.status_code));
     
+    /* headers */
     struct http_header **runner = response.headers.header_list;
     while(*runner) {
         char *key = (*runner)->key;
         char *value = (*runner)->value;
-        sprintf(buffer, "%s%s: %s\r\n", buffer, key, value);
+        curr = buffer + strlen(buffer);
+        sprintf(curr, "%s: %s\r\n", key, value);
+        /*sprintf(buffer, "%s%s: %s\r\n", buffer, key, value);*/
         ++runner;
     }
-    sprintf(buffer, "%s\r\n", buffer);
-    sprintf(buffer, "%s%s", buffer, response.body);
+    /* end response header */
+    curr = buffer + strlen(buffer);
+    sprintf(curr, "\r\n");
+    /* body */
+    sprintf(curr + 2, "%s", response.body);
     
-    write(sockfd, buffer, strlen(buffer));
+    write(cfd, buffer, strlen(buffer));
 }
 
 
 /**
  *
- * answer
+ * create_header
  *
- * prepare the HTTP response
+ * creates a http_header struct with key and value
+ *
  */
 
 struct http_header *create_header(const char *key, const char *value) {
     struct http_header *header = malloc(sizeof(*header));
-    header->key = malloc(strlen(key));
+    header->key = malloc(strlen(key) + 1);
     strcpy(header->key, key);
-    header->value = malloc(strlen(value));
+    header->value = malloc(strlen(value) + 1);
     strcpy(header->value, value);
 
     return header;
-}
-
-void answer(int sockfd) {
-    struct http_response response;
-
-    response.protocol = malloc(sizeof(char*));
-    strcpy(response.protocol, "HTTP/1.1");
-    response.status_code = OK;
-
-    struct http_header **headers = malloc(sizeof(*headers) * 3);
-    headers[0] = create_header("Content-Length", "10");
-    headers[1] = create_header("Content-Type", "text/plain");
-    headers[2] = NULL;
-
-    response.headers.header_list = headers;
-    response.body = "Hello world!";
-
-    send_response(sockfd, response);
-
-    free_http_response(response);
 }
 
 /**
@@ -210,7 +200,7 @@ void display_request(struct http_request request) {
             param_list++;
         }
     }
-       printf("Protocol: %s\n", request.protocol);
+    printf("Protocol: %s\n", request.protocol);
 
     /* headers*/
     printf("Headers:\n");
@@ -271,15 +261,12 @@ void parse_uri(struct http_request *request, char *uri) {
 
     /* if no query params, return */
     if(!*uri_runner) {
-        printf("NO PARAMS\n"); fflush(stdout);
         return;
     }
-
 
     uri = ++uri_runner;
     param_str_list = split(uri, "&");
     params_runner = param_str_list;
-
 
     while(*params_runner) {
         ++num_params;
@@ -389,70 +376,103 @@ char *read_head(int sock) {
 
 
 /* after accepting connection, server HTTP request */
-void serve_http_request(int sockfd) {
-    char *head = read_head(sockfd);
-    struct http_request request = { 0 };
-    int body_len = 0;
-    request = parse_head(head);
-
-    char *content_length = get_header_value(request.headers, "Content-Length");
-    if(content_length) {
-        body_len = atoi(content_length);
-        request.body = malloc(body_len + 1);
-        read_all(sockfd, request.body, body_len);
-        request.body[body_len] = '\0';
-    }
-
-    display_request(request);
-    
-    answer(sockfd);
-    free_http_request(request);
-    free(head);
-}
-
-void serve(int sockfd) {
+struct http_request get_request(struct http_server server) {
     struct sockaddr_in cliaddr;
 	socklen_t client_addr_size;	
-	int cfd;
-    
+	int cfd;   
+    struct http_request request = { 0 };
+
 	memset(&cliaddr, 0, sizeof(cliaddr));
 	
 	client_addr_size = sizeof(cliaddr);
     
-	cfd = accept(sockfd, (struct sockaddr*)&cliaddr, &client_addr_size);
+	cfd = accept(server.sockfd, (struct sockaddr*)&cliaddr, &client_addr_size);
 	if(-1 == cfd) {
 		perror("accept");
 		exit(1);
 	}
+    
+    char *head = read_head(cfd);
+    int body_len = 0;
+    request = parse_head(head);
+    request.clientfd = cfd;
+    char *content_length = get_header_value(request.headers, "Content-Length");
+    if(content_length) {
+        body_len = atoi(content_length);
+        request.body = malloc(body_len + 1);
+        read_all(cfd, request.body, body_len);
+        request.body[body_len] = '\0';
+    }
 
-    serve_http_request(cfd);
+    free(head);
+    return request;
+}
 
-    close(cfd);
+void close_server(struct http_server server) {
+    close(server.sockfd);
+}
+
+struct http_server init_server(char *address, int port) {
+    int sockfd = create_socket();
+
+    bind_socket(sockfd, address, port);
+ 
+    if(-1 == listen(sockfd, LISTEN_BACKLOG)) {
+		perror("listen");
+		exit(1);
+	}
+
+    struct http_server server;
+    server.sockfd = sockfd;
+    
+    return server;
 }
 
 
+
+void answer(int cfd) {
+    struct http_response response;
+
+    response.protocol = malloc(sizeof(char*) + 1);
+    strcpy(response.protocol, "HTTP/1.1");
+    response.status_code = OK;
+
+    struct http_header **headers = malloc(sizeof(*headers) * 3);
+    headers[0] = create_header("Content-Length", "10");
+    headers[1] = create_header("Content-Type", "text/plain");
+    headers[2] = NULL;
+
+    response.headers.header_list = headers;
+    response.body = "Hello world!";
+
+    send_response(cfd, response);
+
+    free_http_response(response);
+}
+
+
+
 int main(int argc, char** argv) {
-    int sockfd = create_socket();
     
+    struct http_server server; 
     if(argc > 2) {
-        bind_socket(sockfd, 1, argv[1], atoi(argv[2] ));
+        server = init_server(argv[1], atoi(argv[2]));
     } else if(argc > 1) {
-        bind_socket(sockfd, 0, NULL, atoi(argv[1]));
+        server = init_server(NULL, atoi(argv[1]));
     } else {
         printf("Usage: ./program [addr] <port>\n");
         exit(1);
     }
-
-
     
-    if(-1 == listen(sockfd, LISTEN_BACKLOG)) {
-		perror("listen");
-		exit(1);
-	} 
-    //while(1) {
-        serve(sockfd);
-    //}
-
+    struct http_request request = get_request(server);
+    
+    display_request(request);
+    
+    answer(request.clientfd);
+    free_http_request(request);
+    
+    close_server(server);
+ 
     return 0;
 }
 

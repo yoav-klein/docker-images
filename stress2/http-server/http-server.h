@@ -24,6 +24,10 @@ char *status_code_to_string(enum StatusCode code) {
     }
 }
 
+struct http_server {
+    int sockfd;
+};
+
 struct http_header {
     char *key;
     char *value;
@@ -50,6 +54,7 @@ struct http_request {
     struct query_params query_params;
     struct http_headers headers;
     char *body;
+    int clientfd;
 };
 
 struct http_response {
