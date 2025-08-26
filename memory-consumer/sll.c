@@ -2,9 +2,9 @@
 #include <stdlib.h> /* malloc */
 #include "sll.h"
 
-// Function to create a new node
-struct node* create_node(void *data) {
-    struct node* new_node = (struct node*)malloc(sizeof(struct node));
+// Function to create a new sll_node
+struct sll_node* sll_create_node(void *data) {
+    struct sll_node* new_node = (struct sll_node*)malloc(sizeof(struct sll_node));
     if (!new_node) {
         printf("Memory allocation error\n");
         exit(1);
@@ -14,16 +14,16 @@ struct node* create_node(void *data) {
     return new_node;
 }
 
-// Insert a node at the beginning
-void insert(struct node** head, void *data) {
-    struct node* new_node = create_node(data);
+// Insert a sll_node at the beginning
+void sll_insert(struct sll_node** head, void *data) {
+    struct sll_node* new_node = sll_create_node(data);
     new_node->next = *head;
     *head = new_node;
 }
 
 // Free the list
-void free_list(struct node* head, void (*delete_handler)(void*)) {
-    struct node* temp;
+void sll_free_list(struct sll_node* head, void (*delete_handler)(void*)) {
+    struct sll_node* temp;
     while (head != NULL) {
         temp = head;
         head = head->next;
@@ -32,7 +32,7 @@ void free_list(struct node* head, void (*delete_handler)(void*)) {
     }
 }
 
-void *find(struct node *head, int (*compare)(void*, void*), void *key) {
+void *sll_find(struct sll_node *head, int (*compare)(void*, void*), void *key) {
     while(head != NULL) {
         if(0 == compare(head->data, key)) return head->data;
         head = head->next;
@@ -41,19 +41,19 @@ void *find(struct node *head, int (*compare)(void*, void*), void *key) {
     return NULL;
 }
 
-struct node *delete(struct node *head, int (*compare)(void*,void*), void *key, void (*delete_handler)(void*)) {
-    struct node *origin = head;
-    struct node *last = NULL;
+struct sll_node *sll_delete(struct sll_node *head, int (*compare)(void*,void*), void *key, void (*delete_handler)(void*)) {
+    struct sll_node *origin = head;
+    struct sll_node *last = NULL;
     while(head) {
         if(0 == compare(head->data, key)) {
-            struct node *tmp = head;
+            struct sll_node *tmp = head;
             head = head->next;
-            if(last == NULL) { // first node 
+            if(last == NULL) { // first sll_node 
                 origin = head;
-            } else { // middle node
+            } else { // middle sll_node
                 last->next = head;
             }
-            // free node
+            // free sll_node
             if(delete_handler) delete_handler(tmp->data);
             free(tmp);
         } else {

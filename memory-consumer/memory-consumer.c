@@ -1,11 +1,11 @@
-#include <pthread.h>
-#include <unistd.h>
-#include <time.h>
+#include <pthread.h> /* pthread_create */
+#include <unistd.h> 
 #include <sys/types.h>
 #include <stdio.h>
 #include <stdlib.h> /* malloc */
 #include <string.h> /* strcpy */
-#include "http-server.h"
+#include "http-server.h" 
+#include "sll.h"
 
 #define MAX_ALLOCATIONS
 
@@ -20,12 +20,12 @@ struct thread_data {
 struct allocation {
     void *location;
     int id;
-}
+};
 
 /* globals */
 struct http_request *g_request;
 static int gid = 0;
-struct allocation allocations[MAX_ALLOCATIONS] = { 0 };
+struct sll_node *allocation_list;
 
 /* functions */
 void protect(int code, const char *msg) {
@@ -66,7 +66,21 @@ void *http_server(void *args) {
 
 void handle_allocate(struct http_request *request, struct http_response *response) {
     response->status_code = OK;
+
+
+    struct allocation *allocation = malloc(sizeof(*allocation));
+    allocation->location = malloc(10);
+    allocation->id = gid++;
+    
+    sll_insert(&allocation_list, (void*)allocation);
+
     response->body = "{\"status\": \"OK\"}";
+    
+    struct sll_node *curr = allocation_list;
+    while(curr) {
+        printf("ITEM\n");
+        curr = curr->next;
+    }
 }
 
 void handle_release(struct http_request *request, struct http_response *response) {
@@ -150,6 +164,8 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
+
+    allocation_list = sll_create_node(NULL);
     srand(time(NULL));
     int data = 0;
 
