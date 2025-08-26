@@ -1,0 +1,3 @@
+[submodule "memory-consumer/http-server"]
+	path = memory-consumer/http-server
+	url = https://github.com/yoav-klein/http-server.git
