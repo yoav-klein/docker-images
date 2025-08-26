@@ -7,6 +7,9 @@
 #include <string.h> /* strcpy */
 #include "http-server.h"
 
+#define MAX_ALLOCATIONS
+
+/* structs */
 struct thread_data {
     int *data;
     pthread_mutex_t *mutex;
@@ -14,33 +17,21 @@ struct thread_data {
     struct http_server* server;
 };
 
-struct http_request *g_request;
+struct allocation {
+    void *location;
+    int id;
+}
 
+/* globals */
+struct http_request *g_request;
+static int gid = 0;
+struct allocation allocations[MAX_ALLOCATIONS] = { 0 };
+
+/* functions */
 void protect(int code, const char *msg) {
     if(code != 0) {
         perror(msg);
     }
-}
-
-
-void answer(int cfd) {
-    struct http_response response;
-
-    response.protocol = malloc(sizeof(char*) + 1);
-    strcpy(response.protocol, "HTTP/1.1");
-    response.status_code = OK;
-
-    struct http_header **headers = malloc(sizeof(*headers) * 3);
-    headers[0] = create_header("Content-Length", "10");
-    headers[1] = create_header("Content-Type", "text/plain");
-    headers[2] = NULL;
-
-    response.headers.header_list = headers;
-    response.body = "Hello world!";
-
-    send_response(cfd, response);
-
-    free_http_response(response);
 }
 
 
@@ -73,6 +64,56 @@ void *http_server(void *args) {
     } 
 }
 
+void handle_allocate(struct http_request *request, struct http_response *response) {
+    response->status_code = OK;
+    response->body = "{\"status\": \"OK\"}";
+}
+
+void handle_release(struct http_request *request, struct http_response *response) {
+    response->status_code = OK;
+    response->body = "{\"status\": \"OK\"}";
+}
+
+void handle_status(struct http_request *request, struct http_response *response) {
+    response->status_code = OK;
+    response->body = "{\"status\": \"OK\"}";
+}
+
+void handle_request() {
+    struct http_request request = *g_request;
+    struct http_response response;
+    char content_length_string[20] = { 0 };
+    
+    /* protocol is always the same */
+    response.protocol = malloc(sizeof(char*) + 1);
+    strcpy(response.protocol, "HTTP/1.1");
+    
+    /* handler depends on path */
+    if(0 == strcmp(request.path, "/allocate")) {
+        handle_allocate(g_request ,&response);
+    } else if(0 == strcmp(request.path, "/release")) {
+        handle_release(g_request, &response);
+    } else if(0 == strcmp(request.path, "/status")) {
+        handle_status(g_request, &response);
+    } else {
+        response.status_code = NOT_FOUND;
+        response.body = "Unknown path";
+    }
+    
+    sprintf(content_length_string, "%lu", strlen(response.body));
+
+    struct http_header **headers = malloc(sizeof(*headers) * 3);
+    headers[0] = create_header("Content-Length", content_length_string);
+    headers[1] = create_header("Content-Type", "text/plain");
+    headers[2] = NULL;
+
+    response.headers.header_list = headers;
+
+    send_response(request.clientfd, response);
+
+    free_http_response(response);
+}
+
 void handle_requests(struct thread_data package) {
     pthread_mutex_t *mutex = package.mutex;
     pthread_cond_t *cond = package.cond;
@@ -87,10 +128,8 @@ void handle_requests(struct thread_data package) {
 
         printf("HANDLER: Ohh request, handling\n");
         
-        // handle request
-        display_request(*g_request);
+        handle_request(); 
 
-        answer(g_request->clientfd);
         free_http_request(*g_request);
 
         *data = 0;

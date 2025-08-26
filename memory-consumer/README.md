@@ -1,17 +1,44 @@
-# Stress
+# Memory Consumer
 ---
 
-A container that takes up a specific amount of memory.
+A memory-consuming application. This app consumes as much memory as you tell it to.
 
 
+## Usage
+---
 
-Usage:
-
-Environment variables:
-* `SIZE` - mandatory - how much size in MB will the process allocate.
-* `PERCENT` - optional - how much percent of the allocated space will be actaully used.
-
+Allocate memory:
 ```
-$ gcc -o stress stress.c
-$ SIZE=10 PERCENT=10 ./stress 
+$ curl <url>/consume?amount=<amount-in-Mi>
+
+# response
+{
+    "status": "OK",
+    "allocationId": "1"
+}
+```
+
+Release memory:
+```
+$ curl <url>/release?allocationId=1
+{
+    "status": "OK"
+}
+```
+
+Status:
+```
+$ curl <url>/status
+{
+    "allocations": [
+    {
+        "allocationId": "3",
+        "amountMi": 1000
+    },
+    {
+        "allocationId": "4",
+        "amountMi": 500
+    }
+    ]
+}
 ```
