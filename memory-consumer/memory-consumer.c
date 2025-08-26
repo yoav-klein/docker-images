@@ -69,7 +69,6 @@ void handle_allocate(struct http_request *request, struct http_response *respons
     char *amount_str = get_query_param(request->query_params, "amount");
     
     if(NULL == amount_str) {
-        printf("NULL AMOUNT\n"); fflush(stdout);
         response->status_code = BAD_REQUEST;
         response->body = "Amount not specified";
         return;
@@ -109,14 +108,25 @@ void handle_status(struct http_request *request, struct http_response *response)
     char *payload;
     char buffer[1024] = { 0 };
     struct sll_node *curr = allocation_list;
-
+    
+    buffer[0] = '[';
     while(curr) {
         struct allocation *allocation = (struct allocation*)curr->data;
-        if(NULL == allocation) { curr = curr-> next; continue; }
-        sprintf(buffer + strlen(buffer), "id: %d, amount: %d, location: %p\n", allocation->id, allocation->amount, allocation->location);
+        if(NULL == allocation) { 
+            curr = curr-> next; 
+            continue; 
+        }
+        sprintf(buffer + strlen(buffer), "{\"id\": \"%d\", \"amount\": %d, \"location\": \"%p\"}", allocation->id, allocation->amount, allocation->location);
+        printf("{\"id\": \"%d\", \"amount\": %d, \"location\": \"%p\"}", allocation->id, allocation->amount, allocation->location);
+        /* add ',' if there's another element */
+        if(curr->next->next) { // the last element is NULL
+            printf("THERE IS NEXT\n");
+            sprintf(buffer + strlen(buffer), ",\n");
+        }
         curr = curr->next;
     }
 
+    buffer[strlen(buffer)] = ']';
     int length = strlen(buffer);
     payload = malloc(length + 1);
     strcpy(payload, buffer);
