@@ -14,6 +14,16 @@
 #define LISTEN_BACKLOG (50)
 #define BUFF_SIZE (500)
 
+char *status_code_to_string(enum StatusCode code) {
+    switch(code) {
+        case 200: return "OK"; break;
+        case 401: return "Unauthorized"; break;
+        case 403: return "Fobidden"; break;
+        case 500: return "Internal server error"; break;
+    }
+}
+
+
 
 int create_socket() {
 	int opt = 1; 
@@ -426,54 +436,6 @@ struct http_server init_server(char *address, int port) {
     server.sockfd = sockfd;
     
     return server;
-}
-
-
-
-void answer(int cfd) {
-    struct http_response response;
-
-    response.protocol = malloc(sizeof(char*) + 1);
-    strcpy(response.protocol, "HTTP/1.1");
-    response.status_code = OK;
-
-    struct http_header **headers = malloc(sizeof(*headers) * 3);
-    headers[0] = create_header("Content-Length", "10");
-    headers[1] = create_header("Content-Type", "text/plain");
-    headers[2] = NULL;
-
-    response.headers.header_list = headers;
-    response.body = "Hello world!";
-
-    send_response(cfd, response);
-
-    free_http_response(response);
-}
-
-
-
-int main(int argc, char** argv) {
-    
-    struct http_server server; 
-    if(argc > 2) {
-        server = init_server(argv[1], atoi(argv[2]));
-    } else if(argc > 1) {
-        server = init_server(NULL, atoi(argv[1]));
-    } else {
-        printf("Usage: ./program [addr] <port>\n");
-        exit(1);
-    }
-    
-    struct http_request request = get_request(server);
-    
-    display_request(request);
-    
-    answer(request.clientfd);
-    free_http_request(request);
-    
-    close_server(server);
- 
-    return 0;
 }
 
 

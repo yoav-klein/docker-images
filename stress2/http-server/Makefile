@@ -1,6 +1,6 @@
 
 
-http-server: utils.c http-server.c http-server.h
+http-server: utils.c http-server.c main.c
 	gcc -o $@ $^
 
 .PHONY: run

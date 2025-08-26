@@ -1,4 +1,6 @@
 
+#ifndef __HTTP_SERVER_H__
+#define __HTTP_SERVER_H__
 
 enum Method {
     GET,
@@ -14,15 +16,6 @@ enum StatusCode {
     NOT_FOUND = 404,
     SERVER_ERROR = 500
 };
-
-char *status_code_to_string(enum StatusCode code) {
-    switch(code) {
-        case 200: return "OK"; break;
-        case 401: return "Unauthorized"; break;
-        case 403: return "Fobidden"; break;
-        case 500: return "Internal server error"; break;
-    }
-}
 
 struct http_server {
     int sockfd;
@@ -63,3 +56,16 @@ struct http_response {
     struct http_headers headers;
     char *body;
 };
+
+
+void free_http_response(struct http_response response);
+void free_http_request(struct http_request request);
+void send_response(int cfd, struct http_response response);
+struct http_header *create_header(const char *key, const char *value);
+void display_request(struct http_request request);
+char *get_header_value(struct http_headers headers, const char *key);
+struct http_request get_request(struct http_server server);
+void close_server(struct http_server server);
+struct http_server init_server(char *address, int port);
+
+#endif
