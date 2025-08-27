@@ -6,7 +6,6 @@ RUN apt-get update
 RUN mkdir /app
 WORKDIR /app
 
-COPY stress.c .
-RUN gcc stress.c -o stress
+COPY memory-consumer .
 
-CMD ["./stress"]
+CMD ["./memory-consumer 8080"]
