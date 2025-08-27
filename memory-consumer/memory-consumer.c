@@ -26,7 +26,7 @@ struct allocation {
 /* globals */
 struct http_request *g_request;
 static int gid = 0;
-struct sll_node *allocation_list;
+struct sll_node *allocation_list = NULL;
 
 /* functions */
 void protect(int code, const char *msg) {
@@ -93,7 +93,8 @@ void handle_allocate(struct http_request *request, struct http_response *respons
     allocation->id = gid++;
     allocation->amount = amount;
     
-    sll_insert(&allocation_list, (void*)allocation);
+    if(NULL == allocation_list) allocation_list = sll_create_node(allocation);
+    else sll_insert(&allocation_list, (void*)allocation);
     
     response->status_code = OK;
     response->body = "{\"status\": \"OK\"}"; 
@@ -112,15 +113,9 @@ void handle_status(struct http_request *request, struct http_response *response)
     buffer[0] = '[';
     while(curr) {
         struct allocation *allocation = (struct allocation*)curr->data;
-        if(NULL == allocation) { 
-            curr = curr-> next; 
-            continue; 
-        }
         sprintf(buffer + strlen(buffer), "{\"id\": \"%d\", \"amount\": %d, \"location\": \"%p\"}", allocation->id, allocation->amount, allocation->location);
-        printf("{\"id\": \"%d\", \"amount\": %d, \"location\": \"%p\"}", allocation->id, allocation->amount, allocation->location);
         /* add ',' if there's another element */
-        if(curr->next->next) { // the last element is NULL
-            printf("THERE IS NEXT\n");
+        if(curr->next) { // the last element is NULL
             sprintf(buffer + strlen(buffer), ",\n");
         }
         curr = curr->next;
@@ -212,8 +207,6 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
-
-    allocation_list = sll_create_node(NULL);
     srand(time(NULL));
     int data = 0;
 

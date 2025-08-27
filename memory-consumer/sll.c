@@ -14,6 +14,15 @@ struct sll_node* sll_create_node(void *data) {
     return new_node;
 }
 
+size_t sll_size(struct sll_node* head) {
+    size_t counter = 0;
+    while(head) {
+        ++counter;
+        head = head->next;
+    }
+    return counter;
+}
+
 // Insert a sll_node at the beginning
 void sll_insert(struct sll_node** head, void *data) {
     struct sll_node* new_node = sll_create_node(data);
