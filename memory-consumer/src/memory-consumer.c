@@ -76,7 +76,7 @@ void *http_server(void *args) {
         pthread_cond_signal(cond);
         pthread_mutex_unlock(mutex);
 
-    } 
+    }
 }
 
 void handle_allocate(struct http_request *request, struct http_response *response) {
@@ -92,12 +92,14 @@ void handle_allocate(struct http_request *request, struct http_response *respons
 
     struct allocation *allocation = malloc(sizeof(*allocation));
     if(NULL == allocation) {
+        perror("malloc failed");
         response->status_code = SERVER_ERROR;
         response->body = "server error";
         return;
     }
     allocation->location = malloc(amount);
     if(NULL == allocation->location) {
+        perror("malloc failed");
         free(allocation);
 
         response->status_code = SERVER_ERROR;
@@ -111,7 +113,14 @@ void handle_allocate(struct http_request *request, struct http_response *respons
     else sll_insert(&allocation_list, (void*)allocation);
     
     response->status_code = OK;
-    response->body = "{\"status\": \"OK\"}"; 
+    char *response_text = "{\"status\": \"OK\"}"; 
+    response->body = malloc(strlen(response_text));
+    if(NULL == response->body) {
+        perror("malloc failed");
+        return;
+    }
+    strcpy(response->body, response_text);
+       
 }
 
 void handle_release(struct http_request *request, struct http_response *response) {
@@ -128,10 +137,17 @@ void handle_release(struct http_request *request, struct http_response *response
     *id_ptr = id;
 
     allocation_list = sll_delete(allocation_list, compare_allocations, id_ptr, release_allocation);
-    response->status_code = OK;
-    response->body = "{\"status\": \"OK\"}";
-
     free(id_ptr);
+   
+    response->status_code = OK; 
+    char *response_text = "{\"status\": \"OK\"}"; 
+    response->body = malloc(strlen(response_text));
+    if(NULL == response->body) {
+        perror("malloc failed");
+        return;
+    }
+    strcpy(response->body, response_text);
+
 }
 
 void handle_status(struct http_request *request, struct http_response *response) {
