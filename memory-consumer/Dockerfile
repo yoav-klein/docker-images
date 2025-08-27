@@ -8,4 +8,4 @@ WORKDIR /app
 
 COPY memory-consumer .
 
-CMD ["./memory-consumer 8080"]
+CMD ["./memory-consumer", "80"]

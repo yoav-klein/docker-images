@@ -7,6 +7,9 @@ A memory-consuming application. This app consumes as much memory as you tell it 
 ## Usage
 ---
 
+Use the Makefile to build the app, build image, push image, run container, etc.
+
+
 Allocate memory:
 ```
 $ curl <url>/consume?amount=<amount-in-Mi>

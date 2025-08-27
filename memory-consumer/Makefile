@@ -1,6 +1,6 @@
 
 SRC=src
-IMAGE=yoavklein/memory-consumer
+IMAGE=yoavklein3/memory-consumer
 VERSION=0.1
 
 memory-consumer: http-server/utils.c http-server/http-server.c ${SRC}/sll.c ${SRC}/memory-consumer.c
@@ -21,3 +21,7 @@ build-image: memory-consumer
 .PHONY: push
 push: build-image
 	docker push ${IMAGE}:${VERSION}
+
+.PHONY: run-container
+run-container: build-image
+	docker run --name memory-consumer -p 8081:80 -d --rm ${IMAGE}:${VERSION}
