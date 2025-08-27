@@ -79,6 +79,13 @@ void *http_server(void *args) {
     }
 }
 
+void fill_garbage(void *buf, size_t len) {
+    unsigned char *p = buf;
+    for (size_t i = 0; i < len; i++) {
+        p[i] = (unsigned char)(i * 37 + 13); // arbitrary junk pattern
+    }
+}
+
 void handle_allocate(struct http_request *request, struct http_response *response) {
     char *amount_str = get_query_param(request->query_params, "amount");
     
@@ -88,7 +95,7 @@ void handle_allocate(struct http_request *request, struct http_response *respons
         return;
     }
 
-    int amount = atoi(amount_str);
+    int amount = atoi(amount_str) * 1024 * 1024; // Mi to bytes
 
     struct allocation *allocation = malloc(sizeof(*allocation));
     if(NULL == allocation) {
@@ -97,6 +104,8 @@ void handle_allocate(struct http_request *request, struct http_response *respons
         response->body = "server error";
         return;
     }
+
+    /* allocate memory */
     allocation->location = malloc(amount);
     if(NULL == allocation->location) {
         perror("malloc failed");
@@ -108,6 +117,11 @@ void handle_allocate(struct http_request *request, struct http_response *respons
     }
     allocation->id = gid++;
     allocation->amount = amount;
+
+    printf("ALLOCATED\n");
+    
+    /* fill memory with garbage so that it'll actually take RAM */
+    fill_garbage(allocation->location, amount);
     
     if(NULL == allocation_list) allocation_list = sll_create_node(allocation);
     else sll_insert(&allocation_list, (void*)allocation);
