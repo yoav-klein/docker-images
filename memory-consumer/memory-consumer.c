@@ -35,6 +35,20 @@ void protect(int code, const char *msg) {
     }
 }
 
+int compare_allocations(void *current, void *key) {
+    struct allocation *allocation = (struct allocation*)current;
+    int id = *((int*)key);
+
+    if(allocation->id == id) return 0;
+    return 1;
+}
+
+void release_allocation(void *current) {
+    struct allocation *allocation = (struct allocation*)current;
+    free(allocation->location);
+    free(allocation);
+}
+
 
 void *http_server(void *args) {
     struct thread_data package = *((struct thread_data*)args);
@@ -101,8 +115,23 @@ void handle_allocate(struct http_request *request, struct http_response *respons
 }
 
 void handle_release(struct http_request *request, struct http_response *response) {
+    char *id_str = get_query_param(request->query_params, "id");
+
+    if(NULL == id_str) {
+        response->status_code = BAD_REQUEST;
+        response->body = "Id not specified";
+        return;
+    }
+
+    int id = atoi(id_str);
+    int *id_ptr = malloc(sizeof(int));
+    *id_ptr = id;
+
+    allocation_list = sll_delete(allocation_list, compare_allocations, id_ptr, release_allocation);
     response->status_code = OK;
     response->body = "{\"status\": \"OK\"}";
+
+    free(id_ptr);
 }
 
 void handle_status(struct http_request *request, struct http_response *response) {
