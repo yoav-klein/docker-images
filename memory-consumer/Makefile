@@ -25,3 +25,7 @@ push: build-image
 .PHONY: run-container
 run-container: build-image
 	docker run --name memory-consumer -p 8081:80 -d --rm ${IMAGE}:${VERSION}
+
+.PHONY: stop-container
+stop-container:
+	docker container stop memory-consumer
