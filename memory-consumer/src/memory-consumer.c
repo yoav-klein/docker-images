@@ -1,7 +1,9 @@
 #include <pthread.h> /* pthread_create */
-#include <unistd.h> 
-#include <sys/types.h>
-#include <stdio.h>
+#include <unistd.h> /* read */
+#include <sys/types.h> /* open */
+#include <sys/stat.h> /* open */
+#include <fcntl.h> /* open */
+#include <stdio.h> /* printf */
 #include <stdlib.h> /* malloc */
 #include <string.h> /* strcpy */
 #include "http-server.h" 
@@ -86,6 +88,71 @@ void fill_garbage(void *buf, size_t len) {
     }
 }
 
+void build_response(struct http_response *response, enum StatusCode code, const char *response_text) {
+    response->body = malloc(strlen(response_text));
+    if(NULL == response->body) {
+        perror("malloc failed");
+        return;
+    }
+    strcpy(response->body, response_text);
+    response->status_code = code;
+ 
+}
+
+void handle_read_file(struct http_request *request, struct http_response *response) {
+    #define FILE_BUFFER_SIZE (1024)
+    char buffer[FILE_BUFFER_SIZE];
+    int fd = 0;
+    char *response_text;
+    char *path_str = get_query_param(request->query_params, "path");
+    char *amount_str = get_query_param(request->query_params, "amount");
+
+    if(NULL == path_str) {
+        build_response(response, BAD_REQUEST, "Path not specified");
+        return;
+    }
+
+    if(NULL == amount_str) {
+        build_response(response, BAD_REQUEST, "Amount not specified");
+        return;
+
+    }
+
+    int amount = atoi(amount_str) * 1024 * 1024;
+    
+    fd = open(path_str, 0);
+    if(0 > fd) {
+        build_response(response, BAD_REQUEST, "Coult not open specified file");
+        return;
+    }
+
+    int done_file = 0;
+    while(!done_file && amount > 0) {
+        int curr_amount = amount > FILE_BUFFER_SIZE ? FILE_BUFFER_SIZE : amount;
+        
+        int read_bytes = 0;
+        while(curr_amount > read_bytes) {
+            int ret  = 0;
+            ret = read(fd, buffer + read_bytes, curr_amount - read_bytes);
+            if(0 > ret) {
+                perror("READ FAILED");
+            }
+            if(0 == ret) { // file over
+                printf("FILE DONE\n"); 
+                done_file = 1; 
+                break;  
+            };
+            read_bytes += ret;
+            buffer[read_bytes] = '\0';
+            printf("%s\n", buffer);
+        }
+        amount -= curr_amount;
+    }
+   
+    build_response(response, OK, "{\"status\": \"OK\"}");
+   
+}   
+
 void handle_allocate(struct http_request *request, struct http_response *response) {
     char *amount_str = get_query_param(request->query_params, "amount");
     
@@ -134,7 +201,7 @@ void handle_allocate(struct http_request *request, struct http_response *respons
         return;
     }
     strcpy(response->body, response_text);
-       
+
 }
 
 void handle_release(struct http_request *request, struct http_response *response) {
@@ -205,6 +272,8 @@ void handle_request() {
         handle_release(g_request, &response);
     } else if(0 == strcmp(request.path, "/status")) {
         handle_status(g_request, &response);
+    } else if(0 == strcmp(request.path, "/readFile")) {
+        handle_read_file(g_request, &response);
     } else {
         response.status_code = NOT_FOUND;
         response.body = "Unknown path";
