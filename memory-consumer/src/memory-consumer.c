@@ -156,8 +156,7 @@ void handle_allocate(struct http_request *request, struct http_response *respons
     char *amount_str = get_query_param(request->query_params, "amount");
     
     if(NULL == amount_str) {
-        response->status_code = BAD_REQUEST;
-        response->body = "Amount not specified";
+        build_response(response, BAD_REQUEST, "Amount not specified");
         return;
     }
 
@@ -165,9 +164,7 @@ void handle_allocate(struct http_request *request, struct http_response *respons
 
     struct allocation *allocation = malloc(sizeof(*allocation));
     if(NULL == allocation) {
-        perror("malloc failed");
-        response->status_code = SERVER_ERROR;
-        response->body = "server error";
+        build_response(response, SERVER_ERROR, "Server error");
         return;
     }
 
@@ -177,14 +174,11 @@ void handle_allocate(struct http_request *request, struct http_response *respons
         perror("malloc failed");
         free(allocation);
 
-        response->status_code = SERVER_ERROR;
-        response->body = "server error";
+        build_response(response, SERVER_ERROR, "Could not allocate memory");
         return;
     }
     allocation->id = gid++;
     allocation->amount = amount;
-
-    printf("ALLOCATED\n");
     
     /* fill memory with garbage so that it'll actually take RAM */
     fill_garbage(allocation->location, amount);
@@ -192,14 +186,7 @@ void handle_allocate(struct http_request *request, struct http_response *respons
     if(NULL == allocation_list) allocation_list = sll_create_node(allocation);
     else sll_insert(&allocation_list, (void*)allocation);
     
-    response->status_code = OK;
-    char *response_text = "{\"status\": \"OK\"}"; 
-    response->body = malloc(strlen(response_text));
-    if(NULL == response->body) {
-        perror("malloc failed");
-        return;
-    }
-    strcpy(response->body, response_text);
+    build_response(response, OK, "{\"status\": \"OK\"}");
 
 }
 
@@ -207,8 +194,7 @@ void handle_release(struct http_request *request, struct http_response *response
     char *id_str = get_query_param(request->query_params, "id");
 
     if(NULL == id_str) {
-        response->status_code = BAD_REQUEST;
-        response->body = "Id not specified";
+        build_response(response, BAD_REQUEST, "Id not specified");
         return;
     }
 
@@ -218,15 +204,8 @@ void handle_release(struct http_request *request, struct http_response *response
 
     allocation_list = sll_delete(allocation_list, compare_allocations, id_ptr, release_allocation);
     free(id_ptr);
-   
-    response->status_code = OK; 
-    char *response_text = "{\"status\": \"OK\"}"; 
-    response->body = malloc(strlen(response_text));
-    if(NULL == response->body) {
-        perror("malloc failed");
-        return;
-    }
-    strcpy(response->body, response_text);
+    
+    build_response(response, OK, "{\"status\": \"OK\"}");
 
 }
 
@@ -274,8 +253,7 @@ void handle_request() {
     } else if(0 == strcmp(request.path, "/readFile")) {
         handle_read_file(g_request, &response);
     } else {
-        response.status_code = NOT_FOUND;
-        response.body = "Unknown path";
+        build_response(&response, NOT_FOUND, "Unknown path");
     }
     
     sprintf(content_length_string, "%lu", strlen(response.body));

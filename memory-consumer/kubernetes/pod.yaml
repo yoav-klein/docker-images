@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  namespace: default
+  name: memory-consumer
+spec:
+  containers:
+    - name: memory-consumer
+      image: yoavklein3/memory-consumer:0.2
+      volumeMounts:
+        - mountPath: "/data"
+          name: shared
+  initContainers:
+    - name: create-file
+      image: yoavklein3/net-tools:0.3
+      command: ["bash", "-c"]
+      args:
+        - "curl https://ash-speed.hetzner.com/1GB.bin -o /data/file.bin"
+      volumeMounts:
+        - mountPath: "/data"
+          name: shared
+  volumes:
+  - name: shared
+    emptyDir: {}

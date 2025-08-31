@@ -1,7 +1,7 @@
 
 SRC=src
 IMAGE=yoavklein3/memory-consumer
-VERSION=0.1
+VERSION=0.2
 
 memory-consumer: http-server/utils.c http-server/http-server.c ${SRC}/sll.c ${SRC}/memory-consumer.c
 	gcc -o $@ $^ -lpthread -Ihttp-server

@@ -54,3 +54,8 @@ $ curl <url>/readFile?path=<path>&amount=<amount-in-Mi>
 }
 
 ```
+
+## Kubernetes
+---
+
+Run this as a kubernetes pod to explore different aspects of memory management and monitoring in kubernetes
