@@ -45,3 +45,12 @@ $ curl <url>/status
     ]
 }
 ```
+
+Read from file:
+```
+$ curl <url>/readFile?path=<path>&amount=<amount-in-Mi>
+{
+    "status": "OK"
+}
+
+```
