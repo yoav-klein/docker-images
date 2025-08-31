@@ -144,7 +144,6 @@ void handle_read_file(struct http_request *request, struct http_response *respon
             };
             read_bytes += ret;
             buffer[read_bytes] = '\0';
-            printf("%s\n", buffer);
         }
         amount -= curr_amount;
     }
