@@ -42,7 +42,7 @@ public class MyApplication {
     private ObservationRegistry observationRegistry;
 
 	
-    public MyApplication(ObservationRegistry registry, MeterRegistry meterRegistry, Foo f) {
+    /* public MyApplication(ObservationRegistry registry, MeterRegistry meterRegistry) {
 		this.observationRegistry = registry;
 		
         this.restTemplate = new RestTemplate();
@@ -81,7 +81,15 @@ public class MyApplication {
 
         registry.observationConfig().observationHandler(clientInFlightHandler);
 
-	}
+	} */
+
+    public MyApplication(ObservationRegistry registry) {
+        this.observationRegistry = registry;
+		
+        this.restTemplate = new RestTemplate();
+		
+        this.restTemplate.setObservationRegistry(observationRegistry);
+    }
 
 
 	@RequestMapping("/")

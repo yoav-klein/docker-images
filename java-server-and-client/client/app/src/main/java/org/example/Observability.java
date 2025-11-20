@@ -1,13 +1,15 @@
-import io.micrometer.core.instrument.Gauge;
-import io.micrometer.core.instrument.MeterRegistry;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+package org.example;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.client.observation.ClientRequestObservationContext;
+
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationHandler;
-import org.springframework.http.client.observation.ClientRequestObservationContext;
 
 
 
@@ -51,8 +53,8 @@ public class Observability {
 
             @Override
             public boolean supportsContext(Observation.Context context) {
-                //return context instanceof ClientRequestObservationContext;
-                return true;
+                return context instanceof ClientRequestObservationContext;
+                
             }
         };
     }
