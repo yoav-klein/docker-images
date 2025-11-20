@@ -20,8 +20,6 @@ public class Observability {
         Gauge.builder("http.client.requests.in_flight", inFlight, AtomicInteger::get)
              .description("Number of in-flight HTTP client requests")
              .register(registry);
-        
-        System.out.println("httpClientInFlightCounter");
 
         return inFlight;
     }
