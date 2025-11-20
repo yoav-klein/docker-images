@@ -10,14 +10,8 @@ import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationHandler;
-
-
-
 @Configuration
 public class Observability {
-
-    @Bean
-    Foo foo() { return new Foo(); }
 
     @Bean
     public AtomicInteger httpClientInFlightCounter(MeterRegistry registry) {
@@ -41,13 +35,10 @@ public class Observability {
             @Override
             public void onStart(ClientRequestObservationContext context) {
                 httpClientInFlightCounter.incrementAndGet();
-
-                System.out.println("clientInFlightHandler:: onStart");
             }
 
             @Override
             public void onStop(ClientRequestObservationContext context) {
-                System.out.println("clientInFlightHandler:: onStop");
                 httpClientInFlightCounter.decrementAndGet();
             }
 

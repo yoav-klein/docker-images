@@ -41,48 +41,6 @@ public class MyApplication {
 	
     private ObservationRegistry observationRegistry;
 
-	
-    /* public MyApplication(ObservationRegistry registry, MeterRegistry meterRegistry) {
-		this.observationRegistry = registry;
-		
-        this.restTemplate = new RestTemplate();
-		
-        this.restTemplate.setObservationRegistry(observationRegistry);
-        
-        AtomicInteger httpClientInFlightCounter = new AtomicInteger(0);
-
-        Gauge.builder("http.client.requests.in_flight",  httpClientInFlightCounter, AtomicInteger::get)
-             .description("Number of in-flight HTTP client requests")
-             .register(meterRegistry);
-        
- 
-        ObservationHandler<ClientRequestObservationContext> clientInFlightHandler = (new ObservationHandler<>() {
-
-            @Override
-            public void onStart(ClientRequestObservationContext context) {
-                httpClientInFlightCounter.incrementAndGet();
-
-                System.out.println("clientInFlightHandler:: onStart");
-            }
-
-            @Override
-            public void onStop(ClientRequestObservationContext context) {
-                System.out.println("clientInFlightHandler:: onStop");
-                httpClientInFlightCounter.decrementAndGet();
-            }
-
-            @Override
-            public boolean supportsContext(Observation.Context context) {
-                return context instanceof ClientRequestObservationContext;
-                // return true;
-            }
-        });
-
-
-        registry.observationConfig().observationHandler(clientInFlightHandler);
-
-	} */
-
     public MyApplication(ObservationRegistry registry) {
         this.observationRegistry = registry;
 		
