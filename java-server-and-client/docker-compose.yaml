@@ -1,0 +1,10 @@
+services:
+  server:
+    build: server
+    container_name: server
+  client:
+    build: client
+    container_name: client
+    ports:
+      - 8080:8080
+
