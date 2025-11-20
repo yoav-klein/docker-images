@@ -40,8 +40,9 @@ public class MyApplication {
 	private RestTemplate restTemplate;
 	
     private ObservationRegistry observationRegistry;
+
 	
-    public MyApplication(ObservationRegistry registry, MeterRegistry meterRegistry) {
+    public MyApplication(ObservationRegistry registry, MeterRegistry meterRegistry, Foo f) {
 		this.observationRegistry = registry;
 		
         this.restTemplate = new RestTemplate();

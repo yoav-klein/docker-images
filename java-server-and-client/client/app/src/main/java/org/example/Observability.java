@@ -15,6 +15,9 @@ import org.springframework.http.client.observation.ClientRequestObservationConte
 public class Observability {
 
     @Bean
+    Foo foo() { return new Foo(); }
+
+    @Bean
     public AtomicInteger httpClientInFlightCounter(MeterRegistry registry) {
         AtomicInteger inFlight = new AtomicInteger(0);
 
