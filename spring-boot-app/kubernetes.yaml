@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: default
+  name: spring-boot-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: spring-boot-demo
+  template:
+    metadata:
+      annotations:
+        ad.datadoghq.com/spring-boot-demo.checks: |
+          {
+            "openmetrics": {
+              "init_config": {},
+              "instances": [
+                {
+                  "openmetrics_endpoint": "http://%%host%%:%%port%%/actuator/prometheus",
+                  "namespace": "alero",
+                  "metrics": ["http_*"]
+                }
+              ]
+            }
+          }
+      labels:
+        app: spring-boot-demo
+    spec:
+      containers:
+      - name: spring-boot-demo
+        image: yoavklein3/spring-boot-app:0.1
+        ports:
+          - name: main
+            containerPort: 8082
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: default
+  name: spring-boot-demo
+spec:
+  type: ClusterIP
+  selector:
+    app: spring-boot-demo
+  ports:
+  - name: main
+    port: 80
+    targetPort: 8082
+  
