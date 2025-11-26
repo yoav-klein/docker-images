@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: default
+  name: java-memory
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: java-memory
+  template:
+    metadata:
+      annotations:
+        ad.datadoghq.com/java-memory.checks: |
+          {
+            "openmetrics": {
+              "init_config": {},
+              "instances": [
+                {
+                  "openmetrics_endpoint": "http://%%host%%:%%port%%/metrics",
+                  "namespace": "alero",
+                  "metrics": ["jvm_memory*", "jvm_threads*"]
+                }
+              ]
+            }
+          }
+      labels:
+        app: java-memory
+    spec:
+      containers:
+      - name: java-memory
+        image: yoavklein3/java-stress:0.5
+        env:
+          - name: SIZE
+            value: "300"
+        ports:
+          - name: main
+            containerPort: 80
+          - name: metrics
+            containerPort: 9404
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: default
+  name: java-memory
+spec:
+  type: ClusterIP
+  selector:
+    app: java-memory
+  ports:
+  - name: main
+    port: 80
+    targetPort: 8090
+  - port: 9404
+    targetPort: 9404
+    name: metrics
