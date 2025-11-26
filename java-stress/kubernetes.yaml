@@ -32,7 +32,7 @@ spec:
         image: yoavklein3/java-stress:0.5
         env:
           - name: SIZE
-            value: "300"
+            value: "100" # initial size of 100
         ports:
           - name: main
             containerPort: 80
