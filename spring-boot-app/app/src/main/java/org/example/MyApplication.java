@@ -18,9 +18,27 @@ public class MyApplication {
 		return "Hello World!";
 	}
 
+	private void sleep(int milliseconds) {
+		try {
+			Thread.sleep(milliseconds);
+		} catch(InterruptedException e) {}
+	}
+
 	@RequestMapping("/delay")
-	String delay(@RequestParam("seconds") int seconds) throws InterruptedException {
-		Thread.sleep(seconds * 1000);
+	String delay(@RequestParam("ms") int ms)  {
+		sleep(ms);
+		return "delayed";
+	}
+	
+	@RequestMapping("/foo")
+	String foo(@RequestParam("ms") int ms)  {
+		sleep(ms);
+		return "delayed";
+	}
+
+	@RequestMapping("/bar")
+	String bar(@RequestParam("ms") int ms)  {
+		sleep(ms);
 		return "delayed";
 	}
 
