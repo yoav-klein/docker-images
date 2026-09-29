@@ -14,6 +14,11 @@ RUN pip install flask
 EXPOSE 5000
 EXPOSE 8090
 
+RUN touch /tmp/health
+
+ARG VERSION
+ENV VERSION=${VERSION}
+
 # Run both the main app and the health check service
-CMD ["sh", "-c", "python app.py & python health.py"]
+CMD ["sh", "-c", "python app.py"]
 
